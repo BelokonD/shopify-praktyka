@@ -1,0 +1,253 @@
+{%- comment -%}
+  Universal product banner.
+  Usage:
+    {% render 'banner-product', handle: 'some-product-handle' %}
+    {% render 'banner-product', product: product %}
+{%- endcomment -%}
+
+{%- assign banner_product = product -%}
+{%- if banner_product == blank and handle != blank -%}
+  {%- assign banner_product = all_products[handle] -%}
+{%- endif -%}
+
+{%- if banner_product == blank -%}
+  <p class="banner-product__message">Продукт не знайдено. Перевірте product або handle.</p>
+{%- else -%}
+  {%- assign color_option_index = 0 -%}
+  {%- assign color_option_name = '' -%}
+
+  {%- for option in banner_product.options_with_values -%}
+    {%- assign option_name_downcase = option.name | downcase -%}
+    {%- if option_name_downcase contains 'color' or option_name_downcase contains 'colour' or option_name_downcase contains 'цвет' or option_name_downcase contains 'колір' -%}
+      {%- assign color_option_index = forloop.index -%}
+      {%- assign color_option_name = option.name -%}
+      {%- break -%}
+    {%- endif -%}
+  {%- endfor -%}
+
+  {%- assign color_values = blank -%}
+  {%- case color_option_index -%}
+    {%- when 1 -%}
+      {%- assign color_values = banner_product.variants | map: 'option1' | uniq -%}
+    {%- when 2 -%}
+      {%- assign color_values = banner_product.variants | map: 'option2' | uniq -%}
+    {%- when 3 -%}
+      {%- assign color_values = banner_product.variants | map: 'option3' | uniq -%}
+  {%- endcase -%}
+  {%- assign colors = color_values | slice: 0, 3 -%}
+
+  {%- assign zero_stock_color = blank -%}
+  {%- if color_option_index > 0 -%}
+    {%- for variant in banner_product.variants -%}
+      {%- assign variant_color = blank -%}
+      {%- case color_option_index -%}
+        {%- when 1 -%}{%- assign variant_color = variant.option1 -%}
+        {%- when 2 -%}{%- assign variant_color = variant.option2 -%}
+        {%- when 3 -%}{%- assign variant_color = variant.option3 -%}
+      {%- endcase -%}
+      {%- if colors contains variant_color and variant.inventory_management != blank and variant.inventory_quantity <= 0 -%}
+        {%- assign zero_stock_color = variant_color -%}
+        {%- break -%}
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+
+  {%- assign demo_zero_stock = false -%}
+  {%- if color_option_index > 0 and zero_stock_color == blank and colors.size > 0 -%}
+    {%- assign zero_stock_color = colors.first -%}
+    {%- assign demo_zero_stock = true -%}
+  {%- endif -%}
+
+  {%- assign image_alt = banner_product.featured_image.alt | default: banner_product.title | default: 'Product image' -%}
+  {%- assign unavailable_text = 'products.product.banner.not_available' | t -%}
+  {%- if unavailable_text contains 'Translation missing' -%}
+    {%- assign unavailable_text = 'Не доступно' -%}
+  {%- endif -%}
+  {%- assign select_color_text = 'products.product.banner.select_color' | t -%}
+  {%- if select_color_text contains 'Translation missing' -%}
+    {%- assign select_color_text = 'Виберіть колір' -%}
+  {%- endif -%}
+  {%- assign available_prefix = 'products.product.banner.available_prefix' | t -%}
+  {%- if available_prefix contains 'Translation missing' -%}
+    {%- assign available_prefix = 'Доступно: ' -%}
+  {%- endif -%}
+  {%- assign in_stock_text = 'products.product.banner.in_stock' | t -%}
+  {%- if in_stock_text contains 'Translation missing' -%}
+    {%- assign in_stock_text = 'У наявності' -%}
+  {%- endif -%}
+
+  <article class="banner-product" data-banner-product>
+    <div class="banner-product__media">
+      {%- if banner_product.featured_image != blank -%}
+        {{ banner_product.featured_image | image_url: width: 900 | image_tag: alt: image_alt, loading: 'lazy', class: 'banner-product__image' }}
+      {%- else -%}
+        {{ 'product-1' | placeholder_svg_tag: 'banner-product__placeholder' }}
+      {%- endif -%}
+    </div>
+
+    <div class="banner-product__content">
+      {%- assign vendor_downcase = banner_product.vendor | downcase -%}
+      {%- case vendor_downcase -%}
+        {%- when 'nike' -%}
+          <span class="banner-product__badge">Nike</span>
+        {%- when 'adidas' -%}
+          <span class="banner-product__badge">Adidas</span>
+        {%- when 'puma' -%}
+          <span class="banner-product__badge">Puma</span>
+      {%- endcase -%}
+
+      <h2 class="banner-product__title">{{ banner_product.title | escape }}</h2>
+
+      {%- if banner_product.price != blank -%}
+        {%- capture price_html -%}
+          <div class="banner-product__price">
+            {%- if banner_product.compare_at_price > banner_product.price -%}
+              <span class="banner-product__price-current">{{ banner_product.price | money }}</span>
+              <s class="banner-product__price-old">{{ banner_product.compare_at_price | money }}</s>
+            {%- else -%}
+              <span class="banner-product__price-current">{{ banner_product.price | money }}</span>
+            {%- endif -%}
+          </div>
+        {%- endcapture -%}
+        {{ price_html }}
+      {%- endif -%}
+
+      {%- if color_option_index > 0 and colors.size > 0 -%}
+        <div class="banner-product__colors">
+          <p class="banner-product__label">{{ color_option_name | escape }}:</p>
+          <div class="banner-product__swatches" role="group" aria-label="{{ color_option_name | escape }}">
+            {%- for color in colors -%}
+              {%- if color == blank -%}{%- continue -%}{%- endif -%}
+              {%- assign color_variant = blank -%}
+              {%- for variant in banner_product.variants -%}
+                {%- case color_option_index -%}
+                  {%- when 1 -%}
+                    {%- if variant.option1 == color -%}{%- assign color_variant = variant -%}{%- break -%}{%- endif -%}
+                  {%- when 2 -%}
+                    {%- if variant.option2 == color -%}{%- assign color_variant = variant -%}{%- break -%}{%- endif -%}
+                  {%- when 3 -%}
+                    {%- if variant.option3 == color -%}{%- assign color_variant = variant -%}{%- break -%}{%- endif -%}
+                {%- endcase -%}
+              {%- endfor -%}
+
+              {%- assign color_qty = 0 -%}
+              {%- assign color_tracked = false -%}
+              {%- assign color_unavailable = false -%}
+              {%- if color_variant != blank -%}
+                {%- if color_variant.inventory_management != blank -%}
+                  {%- assign color_tracked = true -%}
+                  {%- assign color_qty = color_variant.inventory_quantity -%}
+                  {%- if color_qty <= 0 -%}{%- assign color_unavailable = true -%}{%- endif -%}
+                {%- elsif color_variant.available == false -%}
+                  {%- assign color_unavailable = true -%}
+                {%- endif -%}
+              {%- else -%}
+                {%- assign color_unavailable = true -%}
+              {%- endif -%}
+
+              {%- if color == zero_stock_color -%}
+                {%- assign color_qty = 0 -%}
+                {%- assign color_unavailable = true -%}
+              {%- endif -%}
+
+              <button
+                class="banner-product__swatch"
+                type="button"
+                data-color-button
+                data-color="{{ color | escape }}"
+                data-variant-id="{{ color_variant.id }}"
+                data-qty="{{ color_qty }}"
+                data-tracked="{{ color_tracked }}"
+                data-unavailable="{{ color_unavailable }}"
+                data-demo-zero="{% if demo_zero_stock and color == zero_stock_color %}true{% else %}false{% endif %}"
+                aria-label="{{ color | escape }}"
+                aria-pressed="false"
+                style="--swatch-color: {{ color | downcase | escape }};"
+              >
+                <span class="banner-product__swatch-dot" aria-hidden="true"></span>
+                <span>{{ color | escape }}</span>
+              </button>
+            {%- endfor -%}
+          </div>
+          {%- if colors.size < 3 -%}
+            {%- comment -%}У товару менше трьох унікальних кольорів — показуємо всі доступні.{%- endcomment -%}
+          {%- endif -%}
+        </div>
+
+        <p class="banner-product__stock" data-stock-status aria-live="polite">
+          {{ select_color_text | escape }}
+        </p>
+        {%- if demo_zero_stock -%}
+          <small class="banner-product__note">Демо: один колір позначено недоступним, бо у варіантів товару не знайдено нульового залишку.</small>
+        {%- endif -%}
+      {%- else -%}
+        <p class="banner-product__message">Для цього товару не знайдено опцію Color / Colour / Колір.</p>
+      {%- endif -%}
+
+      <a class="banner-product__link" href="{{ banner_product.url }}">Переглянути товар</a>
+    </div>
+
+    <span class="banner-product__translations" hidden
+      data-text-unavailable="{{ unavailable_text | escape }}"
+      data-text-available-prefix="{{ available_prefix | escape }}"
+      data-text-in-stock="{{ in_stock_text | escape }}"></span>
+  </article>
+
+  <style>
+    .banner-product{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(20px,4vw,56px);align-items:center;padding:clamp(20px,4vw,48px);background:#f5f5f5;color:#111;border-radius:12px}
+    .banner-product__media{min-width:0}
+    .banner-product__image,.banner-product__placeholder{display:block;width:100%;height:auto;max-height:520px;object-fit:contain}
+    .banner-product__content{min-width:0}
+    .banner-product__badge{display:inline-block;margin-bottom:12px;padding:5px 10px;background:#111;color:#fff;font-size:12px;letter-spacing:.08em;text-transform:uppercase;border-radius:3px}
+    .banner-product__title{margin:0 0 16px;font-size:clamp(24px,3vw,40px);line-height:1.12}
+    .banner-product__price{display:flex;gap:12px;align-items:center;margin:0 0 24px;font-size:22px;font-weight:700}
+    .banner-product__price-old{font-size:16px;font-weight:400;color:#737373}
+    .banner-product__label{margin:0 0 10px;font-weight:600}
+    .banner-product__swatches{display:flex;flex-wrap:wrap;gap:8px}
+    .banner-product__swatch{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid #c9c9c9;background:#fff;color:#111;border-radius:5px;cursor:pointer}
+    .banner-product__swatch[aria-pressed="true"]{border:2px solid #111;padding:7px 11px}
+    .banner-product__swatch-dot{width:18px;height:18px;border:1px solid #aaa;border-radius:50%;background-color:var(--swatch-color,#ddd)}
+    .banner-product__stock{margin:14px 0;font-weight:600;min-height:1.5em}
+    .banner-product__stock.is-unavailable{color:#b42318}
+    .banner-product__note{display:block;margin:8px 0;color:#737373;font-size:12px}
+    .banner-product__link{display:inline-block;margin-top:12px;padding:12px 22px;background:#111;color:#fff;text-decoration:none;border-radius:4px}
+    .banner-product__message{padding:12px;background:#fff3cd;color:#664d03}
+    @media(max-width:749px){.banner-product{grid-template-columns:1fr}.banner-product__image,.banner-product__placeholder{max-height:360px}}
+  </style>
+
+  <script>
+    (() => {
+      document.querySelectorAll('[data-banner-product]').forEach((banner) => {
+        if (banner.dataset.bannerProductReady === 'true') return;
+        banner.dataset.bannerProductReady = 'true';
+
+        const buttons = banner.querySelectorAll('[data-color-button]');
+        const status = banner.querySelector('[data-stock-status]');
+        const translations = banner.querySelector('.banner-product__translations');
+        if (!status || !translations) return;
+
+        buttons.forEach((button) => {
+          button.addEventListener('click', () => {
+            buttons.forEach((item) => item.setAttribute('aria-pressed', 'false'));
+            button.setAttribute('aria-pressed', 'true');
+
+            const unavailable = button.dataset.unavailable === 'true';
+            const tracked = button.dataset.tracked === 'true';
+            const qty = Number(button.dataset.qty || 0);
+
+            if (unavailable || (tracked && qty <= 0)) {
+              status.textContent = translations.dataset.textUnavailable || 'Не доступно';
+              status.classList.add('is-unavailable');
+            } else if (tracked) {
+              status.textContent = `${translations.dataset.textAvailablePrefix || 'Доступно: '}${qty}`;
+              status.classList.remove('is-unavailable');
+            } else {
+              status.textContent = translations.dataset.textInStock || 'У наявності';
+              status.classList.remove('is-unavailable');
+            }
+          });
+        });
+      });
+    })();
+  </script>
+{%- endif -%}

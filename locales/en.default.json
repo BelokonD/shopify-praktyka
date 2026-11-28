@@ -115,6 +115,12 @@
   },
   "products": {
     "product": {
+      "banner": {
+      "not_available": "Unavailable",
+      "select_color": "Select a color",
+      "available_prefix": "Available: ",
+      "in_stock": "In stock"
+    },
       "add_to_cart": "Add to cart",
       "choose_options": "Choose options",
       "choose_product_options": "Choose options for {{ product_name }}",

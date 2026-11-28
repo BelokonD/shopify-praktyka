@@ -10,6 +10,12 @@
 {
   "products": {
     "product": {
+      "banner": {
+        "not_available": "Недоступно",
+        "select_color": "Виберіть колір",
+        "available_prefix": "Доступно: ",
+        "in_stock": "У наявності"
+      },
       "pickup_availability": {
         "in_stock_at_html": "В наявності в <span class=\"color-foreground\">{{ location_name }}</span>",
         "in_stock_in_store": "У наявності в магазині",
